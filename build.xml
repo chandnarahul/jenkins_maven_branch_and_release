@@ -1,0 +1,67 @@
+<project>
+
+	<target name="deploy">
+
+		<echo level="info" message="#################################" />
+		<echo level="info" message="Branching and release starting." />
+		<echo level="info" message="#################################" />
+
+
+		<sshexec 
+            host="buildserver.domain.com"
+            username="svnadmin" 
+            password="svnadmin"
+            command="cd /home/builduser/scripts/;
+			. .bash_profile;
+			svn co http://buildserver.domain.com:8080/svn/${repo_name}/trunk/${app_name}" 
+            trust="true" />
+
+
+		<sshexec 
+            host="buildserver.domain.com"
+            username="svnadmin" 
+            password="svnadmin"
+            command="cd /home/builduser/scripts/;
+			. .bash_profile;
+			cd ${app_name};
+			mvn -B release:branch -Dusername=svnadmin -Dpassword=adminpassword -DbranchName=${app_name}-${releaseversion}-branch -DreleaseVersion=${releaseversion}.0 -DautoVersionSubmodules=true -DupdateBranchVersions=true -DupdateWorkingCopyVersions=false -DremoteTagging=false -DsuppressCommitBeforeBranch=true" 
+            trust="true" />
+
+		<sshexec 
+            host="buildserver.domain.com"
+            username="svnadmin" 
+            password="svnadmin"
+            command="cd /home/builduser/scripts/;
+			. .bash_profile;
+			rm -rf ${app_name}" 
+            trust="true" />
+
+		<sshexec 
+            host="buildserver.domain.com"
+            username="svnadmin" 
+            password="svnadmin"
+            command="cd /home/builduser/scripts/;
+			. .bash_profile;
+			svn co http://buildserver.domain.com:8080/svn/${repo_name}/branches/${app_name}-${releaseversion}-branch" 
+            trust="true" />
+
+		<sshexec 
+            host="buildserver.domain.com"
+            username="svnadmin" 
+            password="svnadmin"
+            command="cd /home/builduser/scripts/;
+			. .bash_profile;
+			cd ${app_name}-${releaseversion}-branch;
+			mvn versions:use-releases versions:commit;
+			svn commit -m 'Replaced -SNAPSHOT versions with the corresponding release version.';
+			mvn -e -B release:clean release:prepare release:perform -Dusername=svnadmin -Dpassword=adminpassword -Darguments='-Dmaven.test.skip=true' -DautoVersionSubmodules=true -DuseReleaseProfile=false -P live" 
+            trust="true" />
+			
+		
+		<echo level="info" message="################################" />
+		<echo level="info" message="Branching and release complete." />
+		<echo level="info" message="################################" />
+
+	</target>
+
+</project>
